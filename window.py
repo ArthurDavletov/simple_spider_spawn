@@ -29,7 +29,7 @@ class Window(tk.Tk):
                                                int(self.__width / 18), int(self.__height / 18))
         self.__trapdoor_image = get_resized_image("assets/BlockSprite_spruce-trapdoor.png",
                                                   int(self.__width / 18), int(self.__height / 18))
-        self.__water_image = get_resized_image("assets/BlockSprite_water_new.png",
+        self.__water_image = get_resized_image("assets/BlockSprite_water.png",
                                                int(self.__width / 18), int(self.__height / 18))
 
         self.__logger.info("Изображения загружены")
