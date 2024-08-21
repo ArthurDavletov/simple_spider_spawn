@@ -15,7 +15,7 @@ class CustomFormatter(logging.Formatter):
 
 
 class Logger(logging.Logger):
-    def __init__(self, name: str, level: int | str = 0):
+    def __init__(self, name: str, level: int | str = 40):
         super().__init__(name, level)
         if not os.path.exists("logs"):
             os.makedirs("logs")

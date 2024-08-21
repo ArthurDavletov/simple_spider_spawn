@@ -1,7 +1,7 @@
 import enum
 
 
-class Blocks(enum.Enum):
+class Blocks(enum.IntEnum):
     STONE = enum.auto()
     RED_WOOL = enum.auto()
     WATER = enum.auto()
