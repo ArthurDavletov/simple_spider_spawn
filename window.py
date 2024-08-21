@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from PIL import ImageTk, Image
 from blocks import Blocks
@@ -5,32 +6,30 @@ from territory import Territory
 from logger import Logger
 
 
-def get_resized_image(file: str, width: int, height: int) -> ImageTk.PhotoImage:
-    image = Image.open(file).resize((width, height))
-    return ImageTk.PhotoImage(image)
+def get_resized_image(file: str, width: int) -> Image:
+    """Функция возвращает квадратное изображение произвольного размера"""
+    return Image.open(file).resize((width, width))
 
 
 class Window(tk.Tk):
     """Окно 540x540. Расположен canvas, где размещены кнопки"""
-    def __init__(self, *args, **kwargs):
-        self.__logger = Logger(__name__)
+    def __init__(self, logging_level: int | str = 40, *args, **kwargs):
+        """Инициализатор класса. Принимает аргументы родительского класса tk.Tk, а также logging_level.
+        
+        logging_level отвечает за уровень логирования. По умолчанию отлавливаются только ERROR.
+        Для ведения более подробного журнала следует использовать 'INFO', logging.INFO или 20"""
+        self.__logger = Logger(__name__, logging_level)
 
         self.__width, self.__height = 540, 540
+        self.__png_size = int(self.__width / 18)  # размер картинки на кнопке
         super().__init__(*args, **kwargs)
         self.geometry(f"{self.__width}x{self.__height}")
         self.resizable(False, False)
         self.title("Проверка появления пауков")
 
         self.__logger.info("Начало загрузки элементов")
-
-        self.__red_wool_image = get_resized_image("assets/BlockSprite_red-wool.png",
-                                                  int(self.__width / 18), int(self.__height / 18))
-        self.__stone_image = get_resized_image("assets/BlockSprite_stone.png",
-                                               int(self.__width / 18), int(self.__height / 18))
-        self.__trapdoor_image = get_resized_image("assets/BlockSprite_spruce-trapdoor.png",
-                                                  int(self.__width / 18), int(self.__height / 18))
-        self.__water_image = get_resized_image("assets/BlockSprite_water_new.png",
-                                               int(self.__width / 18), int(self.__height / 18))
+        self.__images: dict[Blocks, ImageTk.PhotoImage] = dict()
+        self.__load_images()
 
         self.__logger.info("Изображения загружены")
 
@@ -44,28 +43,45 @@ class Window(tk.Tk):
                                                   for y in range(18)] for x in range(18)]
         self.__place_buttons()
         self.__logger.info("Кнопки размещены")
+        self.protocol("WM_DELETE_WINDOW", self.__on_closing)
+
+    def __on_closing(self):
+        """Событие происходит при закрытии приложении.
+        Важно сохранить данные поля, так как предполагается, что изображения уже сохранены"""
+        self.__territory.save()
+        self.destroy()
+
+    def __save_images(self):
+        filenames = ["red_wool.png", "stone.png", "trapdoor.png", "water.png"]
+        cache_path = f".cache/{__name__}/{self.__png_size}/"
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+        for filename in filenames:
+            get_resized_image(f"assets/{filename}", self.__png_size).save(f"{cache_path}{filename}")
+
+    def __load_images(self):
+        """Загрузка изображений из кеша. Если такого нет, то происходит их создание"""
+        filenames = ["red_wool.png", "stone.png", "trapdoor.png", "water.png"]
+        blocks = [Blocks.RED_WOOL, Blocks.STONE, Blocks.TRAPDOOR, Blocks.WATER]
+        cache_path = f".cache/{__name__}/{self.__png_size}/"
+        if not all(os.path.exists(f"{cache_path}{file}") for file in filenames):
+            self.__logger.info("Создание кеша изображений")
+            self.__save_images()
+        self.__logger.info("Обращение к заранее созданным изображениям")
+        for block, filename in zip(blocks, filenames):
+            self.__images[block] = ImageTk.PhotoImage(Image.open(f"{cache_path}{filename}"))
 
     def __update_button(self, x: int, y: int) -> None:
         """Обновляет состояние кнопки по указанным координатам (нумерация с 0)"""
         block = self.__territory.get(x, y)
         btn = self.__buttons[x][y]
-        image = None
-        match block:
-            case None:
-                btn.configure(state="disabled")
-                return
-            case Blocks.TRAPDOOR:
-                image = self.__trapdoor_image
-            case Blocks.STONE:
-                image = self.__stone_image
-            case Blocks.WATER:
-                image = self.__water_image
-            case Blocks.RED_WOOL:
-                image = self.__red_wool_image
-            case _:
-                self.__logger.error(f"Попытка добавить несуществующий блок: {block}")
-                raise NotImplementedError(f"Данный блок ({block}) пока не поддерживается")
-        btn.configure(image=image)
+        if block is None:
+            btn.configure(state="disabled")
+            return
+        if block not in self.__images:
+            self.__logger.error(f"Попытка добавить несуществующий блок: {block}")
+            raise NotImplementedError(f"Данный блок ({block}) пока не поддерживается")
+        btn.configure(image=self.__images[block])
         self.__canvas.create_window(self.__width / 18 * x, self.__height / 18 * y,
                                     window=btn, anchor = "nw",
                                     width=self.__width / 18, height=self.__height / 18)

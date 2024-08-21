@@ -1,26 +1,48 @@
 from blocks import Blocks
 from logger import Logger
+import os
+import json
 
 
 class Territory:
     """Класс представляет собой ферму опыта. Красная шерсть означает, что там могут появиться пауки
+
     Публичные методы:
-        select(x: int, y: int) -> None
-        get(x: int, y: int) -> None
+        * select(x: int, y: int) -> None
+        * get(x: int, y: int) -> None
+        * save() -> None
     """
-    __slots__ = ("__blocks", "__logger")
+    __slots__ = ("__blocks", "__logger", "__size")
 
     def __init__(self):
-        self.__blocks: list[list[Blocks | None]] = [[None] * 18 for _ in range(18)]
         self.__logger = Logger(__name__)
-        self.__logger.info("Первичное заполнение блоков")
-        self.__fill_blocks()
-        self.__logger.info("Заполнение закончено")
+        self.__size = 18
+        self.__blocks: list[list[Blocks | None]] = [[None] * self.__size for _ in range(self.__size)]
+        self.__load()
+
+    def save(self) -> None:
+        """Сохраняет текущее состояние на диске"""
+        filename = f".cache/{__name__}/cache_{self.__size}.json"
+        if not os.path.exists(filename):
+            os.makedirs(filename[:filename.rfind("/")])
+        with open(filename, "w") as file:
+            json.dump(self.__blocks, file)
+
+    def __load(self) -> None:
+        """Загрузка данных с диска. Если данных нет, то происходит первичное заполнение"""
+        filename = f".cache/{__name__}/cache_{self.__size}.json"
+        if os.path.exists(filename):
+            with open(filename) as file:
+                self.__logger.info("Загрузка данных с диска")
+                self.__blocks = json.load(file)
+        else:
+            self.__logger.info("Первичное заполнение блоков")
+            self.__fill_blocks()
 
     def __fill_blocks(self) -> None:
         """Первичное заполнение"""
-        for x in range(18):
-            for y in range(18):
+        for x in range(self.__size):
+            for y in range(self.__size):
                 block = None
                 if x in (0, len(self.__blocks) - 1) or y in (0, len(self.__blocks) - 1):
                     block = Blocks.STONE
