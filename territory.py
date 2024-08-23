@@ -65,7 +65,7 @@ class Territory:
                 if dx == 0 and dy == 0:
                     continue
                 if 0 <= x + dx < len(self.__blocks) and 0 <= y + dy < len(self.__blocks):
-                    counter += self.__blocks[x + dx][y + dy] is not Blocks.TRAPDOOR
+                    counter += (self.__blocks[x + dx][y + dy] != Blocks.TRAPDOOR)
         return counter == 8
 
     def __update_cell(self, x: int, y: int) -> None:
@@ -81,12 +81,12 @@ class Territory:
         """Происходит выбор клетки. Нумерация с 0
         Если там вода или пустота, ничего не происходит. Иначе ставится / убирается люк"""
         if not (0 <= x < len(self.__blocks) and 0 <= y <= len(self.__blocks[x])):
-            self.__logger.warning(f"Выбран некорректные координаты: ({x}, {y})")
+            self.__logger.warning(f"Выбрана точка с некорректными координатами: ({x}, {y})")
             return
         if self.__blocks[x][y] in (None, Blocks.WATER):
             self.__logger.info(f"Выбран пустой блок или вода на ({x}, {y})")
             return
-        if self.__blocks[x][y] is not Blocks.TRAPDOOR:
+        if self.__blocks[x][y] != Blocks.TRAPDOOR:
             self.__logger.info(f"Выбран камень или шерсть на ({x}, {y})")
             self.__blocks[x][y] = Blocks.TRAPDOOR
         else:
@@ -94,7 +94,7 @@ class Territory:
             self.__blocks[x][y] = Blocks.STONE
         for dx in range(-1, 2):
             for dy in range(-1, 2):
-                if x + dx < 0 or x + dx >= len(self.__blocks) or y + dy < 0 or y + dy >= len(self.__blocks):
+                if not (0 <= x + dx < len(self.__blocks) and 0 <= y + dy < len(self.__blocks[x + dx])):
                     continue
                 self.__update_cell(x + dx, y + dy)
 

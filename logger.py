@@ -38,4 +38,3 @@ class Logger(logging.Logger):
                                            "%d.%m.%Y %H:%M:%S")
         self.__handler.setFormatter(self.__formatter)
         self.addHandler(self.__handler)
-        self.setLevel(logging.INFO)

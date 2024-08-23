@@ -107,4 +107,5 @@ class Window(tk.Tk):
         self.__territory.select(x, y)
         for dx in range(-1, 2):
             for dy in range(-1, 2):
-                self.__update_button(x + dx, y + dy)
+                if 0 <= x + dx < len(self.__buttons) and 0 <= y + dy < len(self.__buttons[x + dx]):
+                    self.__update_button(x + dx, y + dy)
