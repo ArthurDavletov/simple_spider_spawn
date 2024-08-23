@@ -61,6 +61,11 @@ class Window(tk.Tk):
         cache_path = f".cache/{__name__}/{self.__png_size}/"
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
+        not_existing_files = [f"assets/{filename}" for filename in filenames
+                              if not os.path.exists(f"assets/{filename}")]
+        if len(not_existing_files) != 0:
+            self.__logger.error(f"Следующие файлы не были обнаружены: {', '.join(not_existing_files)}")
+            raise FileNotFoundError(f"Файлы изображений не найдены: {', '.join(not_existing_files)}")
         for filename in filenames:
             get_resized_image(f"assets/{filename}", self.__png_size).save(f"{cache_path}{filename}")
 
@@ -70,8 +75,8 @@ class Window(tk.Tk):
         blocks = [Blocks.RED_WOOL, Blocks.STONE, Blocks.TRAPDOOR, Blocks.WATER]
         cache_path = f".cache/{__name__}/{self.__png_size}/"
         if not all(os.path.exists(f"{cache_path}{file}") for file in filenames):
-            self.__logger.info("Создание кеша изображений")
             self.__save_images()
+            self.__logger.info("Кеш изображений создан")
         self.__logger.info("Обращение к заранее созданным изображениям")
         for block, filename in zip(blocks, filenames):
             self.__images[block] = ImageTk.PhotoImage(Image.open(f"{cache_path}{filename}"))
@@ -102,5 +107,4 @@ class Window(tk.Tk):
         self.__territory.select(x, y)
         for dx in range(-1, 2):
             for dy in range(-1, 2):
-                if 0 <= x + dx < len(self.__buttons) and 0 <= y + dy < len(self.__buttons):
-                    self.__update_button(x + dx, y + dy)
+                self.__update_button(x + dx, y + dy)

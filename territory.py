@@ -80,6 +80,9 @@ class Territory:
     def select(self, x: int, y: int) -> None:
         """Происходит выбор клетки. Нумерация с 0
         Если там вода или пустота, ничего не происходит. Иначе ставится / убирается люк"""
+        if not (0 <= x < len(self.__blocks) and 0 <= y <= len(self.__blocks[x])):
+            self.__logger.warning(f"Выбран некорректные координаты: ({x}, {y})")
+            return
         if self.__blocks[x][y] in (None, Blocks.WATER):
             self.__logger.info(f"Выбран пустой блок или вода на ({x}, {y})")
             return
