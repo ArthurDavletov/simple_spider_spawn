@@ -14,8 +14,13 @@ class Territory:
     """
     __slots__ = ("__blocks", "__logger", "__size")
 
-    def __init__(self):
-        self.__logger = Logger(__name__)
+    def __init__(self, logging_level: str | int = 0):
+        """Параметры:
+
+            * logging_level
+                Отвечает за уровень логирования. По умолчанию отлавливаются все события (считая 'INFO').
+                Для ведения менее подробного журнала следует использовать 'ERROR', logging.ERROR или 40"""
+        self.__logger = Logger(__name__, logging_level)
         self.__size = 18
         self.__blocks: list[list[Blocks | None]] = [[None] * self.__size for _ in range(self.__size)]
         self.__load()
