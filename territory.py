@@ -14,8 +14,13 @@ class Territory:
     """
     __slots__ = ("__blocks", "__logger", "__size")
 
-    def __init__(self):
-        self.__logger = Logger(__name__)
+    def __init__(self, logging_level: str | int = 0):
+        """Параметры:
+
+            * logging_level
+                Отвечает за уровень логирования. По умолчанию отлавливаются все события (считая 'INFO').
+                Для ведения менее подробного журнала следует использовать 'ERROR', logging.ERROR или 40"""
+        self.__logger = Logger(__name__, logging_level)
         self.__size = 18
         self.__blocks: list[list[Blocks | None]] = [[None] * self.__size for _ in range(self.__size)]
         self.__load()
@@ -75,6 +80,9 @@ class Territory:
     def select(self, x: int, y: int) -> None:
         """Происходит выбор клетки. Нумерация с 0
         Если там вода или пустота, ничего не происходит. Иначе ставится / убирается люк"""
+        if not (0 <= x < len(self.__blocks) and 0 <= y <= len(self.__blocks[x])):
+            self.__logger.warning(f"Выбран некорректные координаты: ({x}, {y})")
+            return
         if self.__blocks[x][y] in (None, Blocks.WATER):
             self.__logger.info(f"Выбран пустой блок или вода на ({x}, {y})")
             return

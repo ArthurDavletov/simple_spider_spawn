@@ -7,17 +7,21 @@ from logger import Logger
 
 
 def get_resized_image(file: str, width: int) -> Image:
-    """Функция возвращает квадратное изображение произвольного размера"""
+    """Функция возвращает квадратное изображение произвольного размера width"""
     return Image.open(file).resize((width, width))
 
 
 class Window(tk.Tk):
     """Окно 540x540. Расположен canvas, где размещены кнопки"""
-    def __init__(self, logging_level: int | str = 40, *args, **kwargs):
-        """Инициализатор класса. Принимает аргументы родительского класса tk.Tk, а также logging_level.
-        
-        logging_level отвечает за уровень логирования. По умолчанию отлавливаются только ERROR.
-        Для ведения более подробного журнала следует использовать 'INFO', logging.INFO или 20"""
+    def __init__(self, logging_level: int | str = 0, *args, **kwargs):
+        """Инициализатор класса Window
+
+        Параметры:
+
+        * logging_level
+            Отвечает за уровень логирования. По умолчанию отлавливаются все события (считая 'INFO').
+            Для ведения менее подробного журнала следует использовать 'ERROR', logging.ERROR или 40
+        * Позиционные и именованные аргументы родительского класса tk.TK"""
         self.__logger = Logger(__name__, logging_level)
 
         self.__width, self.__height = 540, 540
@@ -35,7 +39,7 @@ class Window(tk.Tk):
 
         self.__canvas = tk.Canvas(bg= "white", width=self.__width, height=self.__height)
         self.__canvas.pack(anchor=tk.CENTER, expand=1)
-        self.__territory = Territory()
+        self.__territory = Territory(logging_level)
         self.__logger.info("Создание и размещение кнопок")
         self.__buttons: list[list[tk.Button]] = [[tk.Button(width=int(self.__width / 18),
                                                             height=int(self.__height / 18),
@@ -52,10 +56,16 @@ class Window(tk.Tk):
         self.destroy()
 
     def __save_images(self):
+        """Сохранение изображений в файл"""
         filenames = ["red_wool.png", "stone.png", "trapdoor.png", "water.png"]
         cache_path = f".cache/{__name__}/{self.__png_size}/"
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
+        not_existing_files = [f"assets/{filename}" for filename in filenames
+                              if not os.path.exists(f"assets/{filename}")]
+        if len(not_existing_files) != 0:
+            self.__logger.error(f"Следующие файлы не были обнаружены: {', '.join(not_existing_files)}")
+            raise FileNotFoundError(f"Файлы изображений не найдены: {', '.join(not_existing_files)}")
         for filename in filenames:
             get_resized_image(f"assets/{filename}", self.__png_size).save(f"{cache_path}{filename}")
 
@@ -65,8 +75,8 @@ class Window(tk.Tk):
         blocks = [Blocks.RED_WOOL, Blocks.STONE, Blocks.TRAPDOOR, Blocks.WATER]
         cache_path = f".cache/{__name__}/{self.__png_size}/"
         if not all(os.path.exists(f"{cache_path}{file}") for file in filenames):
-            self.__logger.info("Создание кеша изображений")
             self.__save_images()
+            self.__logger.info("Кеш изображений создан")
         self.__logger.info("Обращение к заранее созданным изображениям")
         for block, filename in zip(blocks, filenames):
             self.__images[block] = ImageTk.PhotoImage(Image.open(f"{cache_path}{filename}"))
@@ -97,5 +107,4 @@ class Window(tk.Tk):
         self.__territory.select(x, y)
         for dx in range(-1, 2):
             for dy in range(-1, 2):
-                if 0 <= x + dx < len(self.__buttons) and 0 <= y + dy < len(self.__buttons):
-                    self.__update_button(x + dx, y + dy)
+                self.__update_button(x + dx, y + dy)

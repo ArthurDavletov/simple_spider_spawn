@@ -5,6 +5,7 @@ import time
 
 
 class CustomFormatter(logging.Formatter):
+    """Кастомный форматер для даты и времени. С поддержкой миллисекунд"""
     def formatTime(self, record, datefmt=None):
         dt = self.converter(record.created)
         if datefmt:
@@ -15,7 +16,17 @@ class CustomFormatter(logging.Formatter):
 
 
 class Logger(logging.Logger):
-    def __init__(self, name: str, level: int | str = 40):
+    """Класс, отвечающий за логирование. Отличается от обычного логгера за счёт ротирования файлов,
+    а также кастомной даты формата ДД.ММ.ГГГГ ЧЧ:ММ:СС.ммм"""
+    def __init__(self, name: str, level: int | str = 0):
+        """Создаёт экземпляр логгера
+
+        Параметры:
+            * name: str
+                Имя логгера (от него зависят название файлов логов)
+            * level:
+                Уровень логирования. По умолчанию логируются все действия (в частности 'INFO').
+                Для уменьшения логов следует использовать 'ERROR' или 40"""
         super().__init__(name, level)
         if not os.path.exists("logs"):
             os.makedirs("logs")
