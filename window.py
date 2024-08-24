@@ -1,4 +1,5 @@
 import os
+import sys
 import tkinter as tk
 from PIL import ImageTk, Image
 from blocks import Blocks
@@ -6,9 +7,19 @@ from territory import Territory
 from logger import Logger
 
 
-def get_resized_image(file: str, width: int) -> Image:
+def get_resized_image(file, width: int) -> Image:
     """Функция возвращает квадратное изображение произвольного размера width"""
     return Image.open(file).resize((width, width))
+
+
+def resource_path(relative_path):
+    """Получает абсолютный путь к файлу.
+    Функция необходима из-за Pyinstaller, так как без него файлы не находятся."""
+    if hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 
 class Window(tk.Tk):
@@ -26,6 +37,7 @@ class Window(tk.Tk):
 
         self.__width, self.__height = 540, 540
         self.__png_size = int(self.__width / 18)  # размер картинки на кнопке
+        self.__png_cache_path = os.path.join(".cache", __name__, str(self.__png_size))
         super().__init__(*args, **kwargs)
         self.geometry(f"{self.__width}x{self.__height}")
         self.resizable(False, False)
@@ -56,30 +68,36 @@ class Window(tk.Tk):
         self.destroy()
 
     def __save_images(self):
-        """Сохранение изображений в файл"""
+        """Сохранение изображений в кеш"""
         filenames = ["red_wool.png", "stone.png", "trapdoor.png", "water.png"]
-        cache_path = f".cache/{__name__}/{self.__png_size}/"
-        if not os.path.exists(cache_path):
-            os.makedirs(cache_path)
-        not_existing_files = [f"assets/{filename}" for filename in filenames
-                              if not os.path.exists(f"assets/{filename}")]
-        if len(not_existing_files) != 0:
-            self.__logger.error(f"Следующие файлы не были обнаружены: {', '.join(not_existing_files)}")
-            raise FileNotFoundError(f"Файлы изображений не найдены: {', '.join(not_existing_files)}")
+        if not os.path.exists(self.__png_cache_path):
+            os.makedirs(self.__png_cache_path)
+        not_existing_files = []
         for filename in filenames:
-            get_resized_image(f"assets/{filename}", self.__png_size).save(f"{cache_path}{filename}")
+            abspath = resource_path(os.path.join("assets", filename))
+            if not os.path.exists(abspath):
+                not_existing_files.append(abspath)
+        if len(not_existing_files) != 0:
+            self.__logger.error(f"Следующие файлы не были обнаружены: {', '.join(map(str, not_existing_files))}")
+            raise FileNotFoundError(f"Файлы изображений не найдены: {', '.join(map(str, not_existing_files))}")
+        for filename in filenames:
+            abspath = resource_path(os.path.join("assets", filename))
+            get_resized_image(abspath, self.__png_size).save(os.path.join(self.__png_cache_path, filename))
 
     def __load_images(self):
         """Загрузка изображений из кеша. Если такого нет, то происходит их создание"""
         filenames = ["red_wool.png", "stone.png", "trapdoor.png", "water.png"]
         blocks = [Blocks.RED_WOOL, Blocks.STONE, Blocks.TRAPDOOR, Blocks.WATER]
-        cache_path = f".cache/{__name__}/{self.__png_size}/"
-        if not all(os.path.exists(f"{cache_path}{file}") for file in filenames):
+        if not all(os.path.exists(os.path.join(self.__png_cache_path, filename)) for filename in filenames):
             self.__save_images()
             self.__logger.info("Кеш изображений создан")
         self.__logger.info("Обращение к заранее созданным изображениям")
         for block, filename in zip(blocks, filenames):
-            self.__images[block] = ImageTk.PhotoImage(Image.open(f"{cache_path}{filename}"))
+            self.__images[block] = ImageTk.PhotoImage(
+                Image.open(
+                    os.path.join(self.__png_cache_path, filename)
+                )
+            )
 
     def __update_button(self, x: int, y: int) -> None:
         """Обновляет состояние кнопки по указанным координатам (нумерация с 0)"""
